@@ -62,6 +62,7 @@ public class UserController {
     public ResponseEntity<?> createUser(
             @RequestParam("user") String userJson,
             @RequestPart("pdf") MultipartFile pdfFile) {
+
         System.out.println("createUser is called with Json File: " + userJson);
         ObjectMapper mapper = new ObjectMapper();
         UserRequest userRequest;
@@ -121,7 +122,7 @@ public class UserController {
         }
 
         byte[] pdfContent = user.getPdfFile();
-        System.out.println("PDF file retrieved successfully: " + id);
+        System.out.println("PDF file uploaded for: " + id);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.setContentDisposition(ContentDisposition.builder("inline").filename("meradetails.pdf").build());

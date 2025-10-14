@@ -29,7 +29,7 @@ public class EmailService {
             Hi,<br>
             Thank you for showing interest in our service.<br>
             Please use the following One Time Password to verify your login and create your profile.<br>
-            <b>OTP:</b> """ + otp;
+            <b>OTP: </b> """ + otp;
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
