@@ -7,6 +7,8 @@ import com.example.emailRegistration.entity.User;
 import com.example.emailRegistration.repository.UserRepository;
 import com.example.emailRegistration.service.EmailService;
 import com.example.emailRegistration.service.OtpService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
@@ -19,13 +21,12 @@ import java.util.Map;
 @RestController
 @RequestMapping("/maa_kulam")
 public class UserController {
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     @Autowired private UserRepository userRepository;
     //@Autowired private AddressRepository addressRepository;
     @Autowired private OtpService otpService;
     @Autowired private EmailService emailService;
-
-
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody Map<String, String> request) {
@@ -55,7 +56,7 @@ public class UserController {
             System.out.println("User status updated to VERIFIED for: " + email);
             return ResponseEntity.ok("OTP verified and Status set to VERIFIED.");
         }
-        return ResponseEntity.status(400).body("Invalid OTP");
+        return ResponseEntity.status(400).body("Invalid OTP or TimeOut");
     }
 
     @PostMapping(value = "/create-user", consumes = {"multipart/form-data"})
@@ -88,7 +89,7 @@ public class UserController {
 
             try {
                 user.setPdfFile(pdfFile.getBytes());
-                System.out.println("PDF uploaded and set for user: " + user.getEmail());
+                System.out.println("PDF uploaded and pointed to: " + user.getEmail());
             } catch (IOException e) {
                 System.out.println("Failed to read PDF file for: " + user.getEmail() + ", error: " + e.getMessage());
                 return ResponseEntity.status(500).body("Failed to read PDF file.");
@@ -102,23 +103,25 @@ public class UserController {
             //Creating bi-directional relation
             address.setUser(user);
             user.setAddress(address);
-            System.out.println("Address set for user: " + user.getEmail());
+            System.out.println("Address also updated: " + user.getEmail());
 
             userRepository.save(user);
             System.out.println("User saved successfully for: " + user.getEmail());
-            return ResponseEntity.ok("User created");
+            return ResponseEntity.ok("User created with PDF");
         }
         System.out.println("User not verified or does not exist for email: " + userRequest.getEmail());
         return ResponseEntity.status(400).body("User not verified or does not exist.");
     }
 
     @GetMapping("/user/{id}/pdf")
-    public ResponseEntity<byte[]> getUserPdf(@PathVariable Long id) {
+    public ResponseEntity<?> getUserPdf(@PathVariable Long id) {
         System.out.println("getUserPdf called with user id: " + id);
         User user = userRepository.findById(id).orElse(null);
         if (user == null || user.getPdfFile() == null) {
             System.out.println("User not found and no PDF available " + id);
-            return ResponseEntity.notFound().build();
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body("User not found with the given ID.");
         }
 
         byte[] pdfContent = user.getPdfFile();
@@ -127,13 +130,12 @@ public class UserController {
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.setContentDisposition(ContentDisposition.builder("inline").filename("meradetails.pdf").build());
         System.out.println("Returning PDF file for id: " + id);
-        //headers.setContentDisposition(ContentDisposition.builder("attachment").filename("my_details.pdf").build());
+//        headers.setContentDisposition(ContentDisposition.builder("attachment").filename("my_details.pdf").build());
         return new ResponseEntity<>(pdfContent, headers, HttpStatus.OK);
     }
 
 
     //Implementation before Soft/Hard Delete methods. Can Uncomment to make it normal
-
     @DeleteMapping("/delete-user/{id}")
     public ResponseEntity<?> deleteUserById(@PathVariable Long id) {
         if (!userRepository.existsById(id)) {
